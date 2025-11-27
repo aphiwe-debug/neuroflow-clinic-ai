@@ -130,6 +130,32 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
             </div>
           </div>
 
+          {(patient.emergency_contact_name || patient.emergency_contact_phone) && (
+            <div className="pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-3 font-semibold">Emergency Contact</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {patient.emergency_contact_name && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Name</p>
+                    <p className="font-medium">{patient.emergency_contact_name}</p>
+                  </div>
+                )}
+                {patient.emergency_contact_phone && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone</p>
+                    <p className="font-medium">{patient.emergency_contact_phone}</p>
+                  </div>
+                )}
+                {patient.emergency_contact_relationship && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Relationship</p>
+                    <p className="font-medium">{patient.emergency_contact_relationship}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {patient.medical_history && (
             <div className="pt-4 border-t">
               <p className="text-sm text-muted-foreground mb-2">Medical History</p>
