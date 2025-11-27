@@ -9,10 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { PatientList } from "@/components/dashboard/PatientList";
 import { AppointmentCalendar } from "@/components/dashboard/AppointmentCalendar";
 import { PatientDetails } from "@/components/dashboard/PatientDetails";
+import { PatientFormDialog } from "@/components/dashboard/PatientFormDialog";
+import { Tables } from "@/integrations/supabase/types";
+
+type Patient = Tables<"patients">;
 
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [isPatientFormOpen, setIsPatientFormOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -44,6 +50,16 @@ const Dashboard = () => {
       description: "Come back soon!",
     });
     navigate('/');
+  };
+
+  const handleAddPatient = () => {
+    setEditingPatient(null);
+    setIsPatientFormOpen(true);
+  };
+
+  const handleEditPatient = (patient: Patient) => {
+    setEditingPatient(patient);
+    setIsPatientFormOpen(true);
   };
 
   if (!user) {
@@ -83,7 +99,10 @@ const Dashboard = () => {
           <TabsContent value="patients" className="space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">My Patients</h2>
-              <Button className="bg-accent hover:bg-accent/90">
+              <Button 
+                className="bg-accent hover:bg-accent/90"
+                onClick={handleAddPatient}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Patient
               </Button>
@@ -91,6 +110,7 @@ const Dashboard = () => {
             <PatientList 
               onSelectPatient={setSelectedPatientId}
               selectedPatientId={selectedPatientId}
+              onEditPatient={handleEditPatient}
             />
           </TabsContent>
 
@@ -112,6 +132,12 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <PatientFormDialog
+        open={isPatientFormOpen}
+        onOpenChange={setIsPatientFormOpen}
+        patient={editingPatient}
+      />
     </div>
   );
 };
