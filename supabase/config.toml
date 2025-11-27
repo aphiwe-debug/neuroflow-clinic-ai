@@ -1,1 +1,4 @@
 project_id = "mzxdraxbowcxkxialjgb"
+
+[functions.generate-treatment-recommendations]
+verify_jwt = true
