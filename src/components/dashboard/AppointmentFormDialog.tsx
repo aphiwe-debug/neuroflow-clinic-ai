@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -34,6 +34,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Tables } from "@/integrations/supabase/types";
+import { useAppointmentConflicts } from "@/hooks/useAppointmentConflicts";
+import { ConflictWarningDialog } from "./ConflictWarningDialog";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const appointmentSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -70,6 +74,16 @@ export const AppointmentFormDialog = ({
 }: AppointmentFormDialogProps) => {
   const queryClient = useQueryClient();
   const [showRecurrence, setShowRecurrence] = useState(false);
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [pendingValues, setPendingValues] = useState<AppointmentFormValues | null>(null);
+  const [conflictCheckParams, setConflictCheckParams] = useState<{
+    clinic_id: string;
+    start_time: string;
+    end_time: string;
+    exclude_appointment_id?: string;
+  } | null>(null);
+
+  const { data: conflicts = [], isLoading: isCheckingConflicts } = useAppointmentConflicts(conflictCheckParams);
 
   const { data: patients } = useQuery({
     queryKey: ["patients"],
@@ -198,12 +212,51 @@ export const AppointmentFormDialog = ({
     },
   });
 
-  const onSubmit = (values: AppointmentFormValues) => {
-    if (appointment) {
-      updateMutation.mutate(values);
-    } else {
-      createMutation.mutate(values);
+  useEffect(() => {
+    if (conflicts && conflicts.length > 0 && !isCheckingConflicts) {
+      setShowConflictDialog(true);
+      setConflictCheckParams(null);
     }
+  }, [conflicts, isCheckingConflicts]);
+
+  const checkForConflicts = async (values: AppointmentFormValues) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Not authenticated");
+      return;
+    }
+
+    setConflictCheckParams({
+      clinic_id: user.id,
+      start_time: new Date(values.start_time).toISOString(),
+      end_time: new Date(values.end_time).toISOString(),
+      exclude_appointment_id: appointment?.id,
+    });
+    setPendingValues(values);
+  };
+
+  const proceedWithBooking = () => {
+    setShowConflictDialog(false);
+    if (pendingValues) {
+      if (appointment) {
+        updateMutation.mutate(pendingValues);
+      } else {
+        createMutation.mutate(pendingValues);
+      }
+      setPendingValues(null);
+    }
+    setConflictCheckParams(null);
+  };
+
+  const cancelBooking = () => {
+    setShowConflictDialog(false);
+    setPendingValues(null);
+    setConflictCheckParams(null);
+  };
+
+  const onSubmit = async (values: AppointmentFormValues) => {
+    // Check for conflicts before submitting
+    await checkForConflicts(values);
   };
 
   const generateRRule = (values: AppointmentFormValues): RRule => {
@@ -547,17 +600,36 @@ export const AppointmentFormDialog = ({
               </>
             )}
 
+            {conflicts && conflicts.length > 0 && !showConflictDialog && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {conflicts.length} scheduling conflict{conflicts.length !== 1 ? 's' : ''} detected for this time slot.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {appointment ? "Update" : "Create"}
+              <Button 
+                type="submit" 
+                disabled={createMutation.isPending || updateMutation.isPending || isCheckingConflicts}
+              >
+                {isCheckingConflicts ? "Checking..." : appointment ? "Update" : "Create"}
               </Button>
             </div>
           </form>
         </Form>
       </DialogContent>
+
+      <ConflictWarningDialog
+        open={showConflictDialog}
+        conflicts={conflicts || []}
+        onCancel={cancelBooking}
+        onProceed={proceedWithBooking}
+      />
     </Dialog>
   );
 };
