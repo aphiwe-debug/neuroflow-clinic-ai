@@ -1,28 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Plus } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import { CalendarView } from "./CalendarView";
+import { AppointmentFormDialog } from "./AppointmentFormDialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 type Appointment = Tables<"appointments"> & {
   patients?: Tables<"patients">;
 };
 
-const statusColors = {
-  scheduled: "bg-blue-500",
-  completed: "bg-green-500",
-  cancelled: "bg-red-500",
-  no_show: "bg-gray-500",
-};
-
 export const AppointmentCalendar = () => {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | undefined>();
+  const [defaultSlot, setDefaultSlot] = useState<{ start: Date; end: Date } | undefined>();
   const { data: appointments, isLoading } = useQuery({
-    queryKey: ['appointments'],
+    queryKey: ["appointments"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('appointments')
+        .from("appointments")
         .select(`
           *,
           patients (
@@ -30,93 +31,127 @@ export const AppointmentCalendar = () => {
             email
           )
         `)
-        .order('start_time', { ascending: true });
-      
+        .order("start_time", { ascending: true });
+
       if (error) throw error;
       return data as Appointment[];
     },
   });
 
+  const updateAppointmentMutation = useMutation({
+    mutationFn: async ({
+      id,
+      start_time,
+      end_time,
+    }: {
+      id: string;
+      start_time: Date;
+      end_time: Date;
+    }) => {
+      const { error } = await supabase
+        .from("appointments")
+        .update({
+          start_time: start_time.toISOString(),
+          end_time: end_time.toISOString(),
+        })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Appointment updated successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to update appointment: " + error.message);
+    },
+  });
+
+  const handleSelectEvent = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setDefaultSlot(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleSelectSlot = (slotInfo: { start: Date; end: Date }) => {
+    setSelectedAppointment(undefined);
+    setDefaultSlot(slotInfo);
+    setDialogOpen(true);
+  };
+
+  const handleEventDrop = ({
+    event,
+    start,
+    end,
+  }: {
+    event: any;
+    start: Date;
+    end: Date;
+  }) => {
+    updateAppointmentMutation.mutate({
+      id: event.resource.id,
+      start_time: start,
+      end_time: end,
+    });
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedAppointment(undefined);
+    setDefaultSlot(undefined);
+  };
+
   if (isLoading) {
     return (
-      <div className="grid gap-4">
-        {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-4 w-[250px]" />
-              <Skeleton className="h-3 w-[200px]" />
-            </CardHeader>
-          </Card>
-        ))}
+      <div className="space-y-4">
+        <Skeleton className="h-[700px] w-full" />
       </div>
     );
   }
 
-  if (!appointments || appointments.length === 0) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
-          <p className="text-muted-foreground text-center">
-            No appointments scheduled. Create your first appointment.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <div className="grid gap-4">
-      {appointments.map((appointment) => {
-        const startTime = new Date(appointment.start_time);
-        const endTime = new Date(appointment.end_time);
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Appointment Calendar</h2>
+        <Button onClick={() => {
+          setSelectedAppointment(undefined);
+          setDefaultSlot(undefined);
+          setDialogOpen(true);
+        }}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Appointment
+        </Button>
+      </div>
 
-        return (
-          <Card key={appointment.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-lg">{appointment.title}</CardTitle>
-                  <CardDescription>
-                    {appointment.patients?.full_name || 'Unknown Patient'}
-                  </CardDescription>
-                </div>
-                <Badge 
-                  className={`${statusColors[appointment.status]} text-white`}
-                >
-                  {appointment.status.replace('_', ' ')}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  {startTime.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="w-4 h-4" />
-                  {startTime.toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit' 
-                  })} - {endTime.toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit' 
-                  })}
-                </div>
-                {appointment.description && (
-                  <p className="text-sm mt-2">{appointment.description}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {!appointments || appointments.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <CalendarIcon className="w-12 h-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground text-center mb-4">
+              No appointments scheduled. Create your first appointment.
+            </p>
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Appointment
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <CalendarView
+          appointments={appointments}
+          onSelectEvent={handleSelectEvent}
+          onSelectSlot={handleSelectSlot}
+          onEventDrop={handleEventDrop}
+        />
+      )}
+
+      <AppointmentFormDialog
+        open={dialogOpen}
+        onOpenChange={handleCloseDialog}
+        appointment={selectedAppointment}
+        defaultStartTime={defaultSlot?.start}
+        defaultEndTime={defaultSlot?.end}
+      />
     </div>
   );
 };
