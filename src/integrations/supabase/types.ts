@@ -279,6 +279,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_appointment_conflict: {
+        Args: {
+          p_clinic_id: string
+          p_end_time: string
+          p_exclude_appointment_id?: string
+          p_start_time: string
+        }
+        Returns: {
+          end_time: string
+          id: string
+          patient_name: string
+          start_time: string
+          title: string
+        }[]
+      }
       get_user_plan: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["subscription_plan"]

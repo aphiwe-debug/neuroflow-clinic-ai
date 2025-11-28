@@ -87,19 +87,34 @@ export const CalendarView = ({
 
   const eventStyleGetter = useCallback((event: CalendarEvent) => {
     const status = event.resource.status;
+    
+    // Check if this event overlaps with any other event
+    const hasConflict = events.some((otherEvent) => {
+      if (otherEvent.id === event.id) return false;
+      if (otherEvent.resource.status === 'cancelled' || otherEvent.resource.status === 'no_show') return false;
+      
+      const eventStart = event.start.getTime();
+      const eventEnd = event.end.getTime();
+      const otherStart = otherEvent.start.getTime();
+      const otherEnd = otherEvent.end.getTime();
+      
+      return (eventStart < otherEnd && eventEnd > otherStart);
+    });
+
     return {
       style: {
         backgroundColor: statusColors[status],
         borderRadius: "6px",
         opacity: 0.9,
         color: "white",
-        border: "0",
+        border: hasConflict ? "2px solid hsl(var(--destructive))" : "0",
+        boxShadow: hasConflict ? "0 0 0 2px hsl(var(--destructive) / 0.2)" : "none",
         display: "block",
         fontSize: "0.875rem",
         fontWeight: "500",
       },
     };
-  }, []);
+  }, [events]);
 
   return (
     <Card className="p-6">
