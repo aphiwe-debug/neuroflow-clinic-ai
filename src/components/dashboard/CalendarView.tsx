@@ -2,9 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Calendar, dateFnsLocalizer, View } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { enUS } from "date-fns/locale";
-import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Tables } from "@/integrations/supabase/types";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
 const locales = {
