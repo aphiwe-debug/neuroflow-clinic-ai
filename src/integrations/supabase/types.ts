@@ -53,7 +53,10 @@ export type Database = {
           description: string | null
           end_time: string
           id: string
+          is_recurring: boolean | null
           patient_id: string
+          recurrence_parent_id: string | null
+          recurrence_rule: string | null
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
           title: string
@@ -65,7 +68,10 @@ export type Database = {
           description?: string | null
           end_time: string
           id?: string
+          is_recurring?: boolean | null
           patient_id: string
+          recurrence_parent_id?: string | null
+          recurrence_rule?: string | null
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
           title: string
@@ -77,7 +83,10 @@ export type Database = {
           description?: string | null
           end_time?: string
           id?: string
+          is_recurring?: boolean | null
           patient_id?: string
+          recurrence_parent_id?: string | null
+          recurrence_rule?: string | null
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
           title?: string
@@ -89,6 +98,13 @@ export type Database = {
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_recurrence_parent_id_fkey"
+            columns: ["recurrence_parent_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
             referencedColumns: ["id"]
           },
         ]
