@@ -20,7 +20,7 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "R900",
+    price: "R1,000",
     period: "per month",
     description: "For growing practices that need automation",
     features: [
@@ -38,7 +38,7 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "R1,800",
+    price: "R2,000",
     period: "per month",
     description: "For established clinics needing enterprise features",
     features: [
