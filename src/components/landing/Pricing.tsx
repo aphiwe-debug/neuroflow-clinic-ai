@@ -4,28 +4,23 @@ import { useNavigate } from "react-router-dom";
 
 const plans = [
   {
-    name: "Free",
-    price: "$0",
-    period: "forever",
+    name: "Starter",
+    price: "R500",
+    period: "per month",
     description: "Perfect for solo practitioners getting started",
     features: [
-      "Up to 5 patients",
+      "Up to 25 patients",
       "Basic patient records",
       "Manual appointment scheduling",
       "Email support",
-      "7-day data retention",
+      "30-day data retention",
     ],
-    limitations: [
-      "No AI recommendations",
-      "No automated reminders",
-      "No analytics",
-    ],
-    cta: "Start Free",
+    cta: "Get Started",
     popular: false,
   },
   {
     name: "Pro",
-    price: "$49",
+    price: "R900",
     period: "per month",
     description: "For growing practices that need automation",
     features: [
@@ -35,7 +30,7 @@ const plans = [
       "Automated SMS & email reminders",
       "Basic analytics dashboard",
       "Priority email support",
-      "30-day data retention",
+      "90-day data retention",
       "Role-based access (3 users)",
     ],
     cta: "Start Pro Trial",
@@ -43,7 +38,7 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "$99",
+    price: "R1,800",
     period: "per month",
     description: "For established clinics needing enterprise features",
     features: [
@@ -128,12 +123,6 @@ export const Pricing = () => {
                   <li key={featureIdx} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-foreground">{feature}</span>
-                  </li>
-                ))}
-                {plan.limitations?.map((limitation, limitIdx) => (
-                  <li key={`limit-${limitIdx}`} className="flex items-start gap-3 opacity-50">
-                    <Check className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-                    <span className="text-muted-foreground line-through">{limitation}</span>
                   </li>
                 ))}
               </ul>
