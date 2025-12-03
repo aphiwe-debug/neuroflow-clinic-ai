@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Check, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -5,8 +6,7 @@ import { useNavigate } from "react-router-dom";
 const plans = [
   {
     name: "Starter",
-    price: "R500",
-    period: "per month",
+    monthlyPrice: 500,
     description: "Perfect for solo practitioners getting started",
     features: [
       "Up to 25 patients",
@@ -20,8 +20,7 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "R1,000",
-    period: "per month",
+    monthlyPrice: 1000,
     description: "For growing practices that need automation",
     features: [
       "Unlimited patients",
@@ -38,8 +37,7 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "R2,000",
-    period: "per month",
+    monthlyPrice: 2000,
     description: "For established clinics needing enterprise features",
     features: [
       "Everything in Pro, plus:",
@@ -57,12 +55,28 @@ const plans = [
   },
 ];
 
+const formatPrice = (price: number) => {
+  return `R${price.toLocaleString("en-ZA")}`;
+};
+
 export const Pricing = () => {
   const navigate = useNavigate();
+  const [isYearly, setIsYearly] = useState(false);
 
   const handleCTAClick = (planName: string) => {
-    // For now, redirect to auth page - will implement plan selection later
     navigate('/auth');
+  };
+
+  const getPrice = (monthlyPrice: number) => {
+    if (isYearly) {
+      // 2 months free = 10 months worth for yearly
+      return formatPrice(monthlyPrice * 10);
+    }
+    return formatPrice(monthlyPrice);
+  };
+
+  const getSavings = (monthlyPrice: number) => {
+    return formatPrice(monthlyPrice * 2);
   };
 
   return (
@@ -75,9 +89,36 @@ export const Pricing = () => {
               Pricing
             </span>
           </h2>
-          <p className="text-xl text-muted-foreground">
-            Choose the perfect plan for your clinic. Start free, upgrade as you grow.
+          <p className="text-xl text-muted-foreground mb-8">
+            Choose the perfect plan for your clinic. Upgrade as you grow.
           </p>
+
+          {/* Billing Toggle */}
+          <div className="flex items-center justify-center gap-4">
+            <span className={`text-sm font-medium ${!isYearly ? "text-foreground" : "text-muted-foreground"}`}>
+              Monthly
+            </span>
+            <button
+              onClick={() => setIsYearly(!isYearly)}
+              className={`relative w-14 h-7 rounded-full transition-colors ${
+                isYearly ? "bg-primary" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-background shadow-md transition-transform ${
+                  isYearly ? "translate-x-7" : "translate-x-0"
+                }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${isYearly ? "text-foreground" : "text-muted-foreground"}`}>
+              Yearly
+            </span>
+            {isYearly && (
+              <span className="ml-2 px-3 py-1 bg-primary/10 text-primary text-sm font-semibold rounded-full">
+                2 months free
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
@@ -100,10 +141,19 @@ export const Pricing = () => {
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-bold mb-2 text-foreground">{plan.name}</h3>
                 <div className="mb-3">
-                  <span className="text-5xl font-bold text-foreground">{plan.price}</span>
-                  <span className="text-muted-foreground ml-2">/ {plan.period}</span>
+                  <span className="text-5xl font-bold text-foreground">
+                    {getPrice(plan.monthlyPrice)}
+                  </span>
+                  <span className="text-muted-foreground ml-2">
+                    / {isYearly ? "year" : "month"}
+                  </span>
                 </div>
-                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                {isYearly && (
+                  <p className="text-sm text-primary font-medium">
+                    Save {getSavings(plan.monthlyPrice)} per year
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
               </div>
 
               <Button
