@@ -14,6 +14,26 @@ serve(async (req) => {
   try {
     const { patientId, medicalHistory, symptoms } = await req.json();
 
+    // Input validation
+    if (!patientId || typeof patientId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId)) {
+      return new Response(JSON.stringify({ error: "Invalid patient ID" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (medicalHistory && (typeof medicalHistory !== "string" || medicalHistory.length > 5000)) {
+      return new Response(JSON.stringify({ error: "Medical history must be a string under 5000 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (symptoms && (typeof symptoms !== "string" || symptoms.length > 2000)) {
+      return new Response(JSON.stringify({ error: "Symptoms must be a string under 2000 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -30,6 +50,20 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verify user owns this patient
+    const { data: patient, error: patientError } = await supabase
+      .from("patients")
+      .select("id, clinic_id")
+      .eq("id", patientId)
+      .single();
+
+    if (patientError || !patient) {
+      return new Response(JSON.stringify({ error: "Patient not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
